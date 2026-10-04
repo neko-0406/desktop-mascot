@@ -132,8 +132,8 @@ impl GpuSkeleton {
         self.bones.iter().position(|b| b.name == name)
     }
 
-    /// Re-evaluates bone hierarchy transforms and uploads final skin matrices to the GPU buffer.
-    pub fn update(&mut self, queue: &Queue) {
+    /// Recomputes world and skin matrices for all bones without GPU upload.
+    pub fn compute_world_transforms(&mut self) {
         for i in 0..self.bones.len() {
             let local = self.bones[i].compute_local_matrix();
             let parent = self.bones[i].parent_index;
@@ -146,6 +146,11 @@ impl GpuSkeleton {
             self.bones[i].skin_matrix = world * self.bones[i].inverse_bind_matrix;
             self.skin_matrices[i] = self.bones[i].skin_matrix.to_cols_array_2d();
         }
+    }
+
+    /// Re-evaluates bone hierarchy transforms and uploads final skin matrices to the GPU buffer.
+    pub fn update(&mut self, queue: &Queue) {
+        self.compute_world_transforms();
 
         queue.write_buffer(
             &self.bone_buffer,
