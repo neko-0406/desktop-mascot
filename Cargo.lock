@@ -924,6 +924,7 @@ dependencies = [
 name = "mascot-physics"
 version = "0.1.0"
 dependencies = [
+ "glam",
  "mascot-format",
  "thiserror 2.0.21",
 ]

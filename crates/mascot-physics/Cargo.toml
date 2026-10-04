@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 mascot-format = { workspace = true }
+glam = { workspace = true }
 thiserror = { workspace = true }
