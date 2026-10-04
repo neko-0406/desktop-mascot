@@ -1,5 +1,8 @@
 mod app;
 mod platform;
+mod hittest;
+mod interaction;
+mod ui;
 
 use app::MascotApp;
 use tracing::info;
