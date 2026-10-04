@@ -73,6 +73,72 @@ impl SpeechBubble {
     }
 }
 
+/// Locates the Windows fonts directory from environment variables or standard path.
+fn find_windows_font_dir() -> std::path::PathBuf {
+    if let Ok(sys_root) = std::env::var("SystemRoot") {
+        let p = std::path::PathBuf::from(sys_root).join("Fonts");
+        if p.is_dir() {
+            return p;
+        }
+    }
+    if let Ok(windir) = std::env::var("WINDIR") {
+        let p = std::path::PathBuf::from(windir).join("Fonts");
+        if p.is_dir() {
+            return p;
+        }
+    }
+    std::path::PathBuf::from(r"C:\Windows\Fonts")
+}
+
+/// Attempts to load and configure a Japanese system font (Meiryo, Yu Gothic, MS Gothic)
+/// as fallback in the egui context. Falls back cleanly to default fonts if unavailable.
+fn setup_japanese_fonts(ctx: &Context) {
+    let font_dir = find_windows_font_dir();
+    let candidates = [
+        "meiryo.ttc",
+        "YuGothM.ttc",
+        "YuGothR.ttc",
+        "msgothic.ttc",
+    ];
+
+    for candidate in candidates {
+        let font_path = font_dir.join(candidate);
+        if font_path.exists() {
+            match std::fs::read(&font_path) {
+                Ok(bytes) => {
+                    tracing::info!("Loaded Japanese system font: {}", font_path.display());
+                    let mut fonts = egui::FontDefinitions::default();
+                    fonts.font_data.insert(
+                        "japanese_font".to_owned(),
+                        Arc::new(egui::FontData::from_owned(bytes)),
+                    );
+                    fonts
+                        .families
+                        .entry(egui::FontFamily::Proportional)
+                        .or_default()
+                        .push("japanese_font".to_owned());
+                    fonts
+                        .families
+                        .entry(egui::FontFamily::Monospace)
+                        .or_default()
+                        .push("japanese_font".to_owned());
+
+                    ctx.set_fonts(fonts);
+                    return;
+                }
+                Err(err) => {
+                    tracing::warn!("Failed to read font file {}: {err}", font_path.display());
+                }
+            }
+        }
+    }
+
+    tracing::warn!(
+        "No Japanese system font found in {}; falling back to default egui fonts",
+        font_dir.display()
+    );
+}
+
 /// Commands emitted by the egui context menu to the mascot application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UiAction {
@@ -101,6 +167,7 @@ impl EguiOverlay {
         output_format: wgpu::TextureFormat,
     ) -> Self {
         let ctx = Context::default();
+        setup_japanese_fonts(&ctx);
 
         let winit_state = EguiWinitState::new(
             ctx.clone(),
@@ -403,5 +470,15 @@ mod tests {
         bubble.set_text("Second text");
         assert_eq!(bubble.visible_text(), "");
         assert!(bubble.is_typing());
+    }
+
+    #[test]
+    fn test_setup_japanese_fonts() {
+        let font_dir = find_windows_font_dir();
+        assert!(!font_dir.as_os_str().is_empty());
+
+        let ctx = egui::Context::default();
+        // Should not panic even if fonts don't exist
+        setup_japanese_fonts(&ctx);
     }
 }
