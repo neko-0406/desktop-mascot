@@ -19,4 +19,7 @@ pub enum RendererError {
 
     #[error("Mesh buffer error: {0}")]
     MeshError(String),
+
+    #[error("Model error: {0}")]
+    ModelError(String),
 }

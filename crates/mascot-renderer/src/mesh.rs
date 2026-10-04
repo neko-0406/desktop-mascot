@@ -32,7 +32,7 @@ impl GpuMesh {
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Mesh Vertex Buffer"),
             contents: bytemuck::cast_slice(&mesh.vertices),
-            usage: BufferUsages::VERTEX,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
         });
 
         let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
