@@ -293,8 +293,10 @@ namespace DesktopMascot.Editor
                 if (desc != null)
                 {
                     var viewProp = descriptorType.GetField("ViewPosition") ?? descriptorType.GetProperty("ViewPosition") as MemberInfo;
-                    if (viewProp is FieldInfo f) viewPos = (Vector3)f.GetValue(desc);
-                    else if (viewProp is PropertyInfo p) viewPos = (Vector3)p.GetValue(desc);
+                    object vVal = null;
+                    if (viewProp is FieldInfo f) vVal = f.GetValue(desc);
+                    else if (viewProp is PropertyInfo p) vVal = p.GetValue(desc);
+                    if (vVal is Vector3 vp) viewPos = vp;
                 }
             }
 
@@ -963,7 +965,30 @@ namespace DesktopMascot.Editor
                 spring = GetValue<float>(t, c, "spring", 0.8f);
                 damping = GetValue<float>(t, c, "damping", 0.1f);
                 stiffness = GetValue<float>(t, c, "stiffness", 0.0f);
-                gravity = GetValue<Vector3>(t, c, "gravity", new Vector3(0, -9.81f, 0));
+
+                // gravity: support both float (VRCPhysBone standard) and Vector3
+                var rawGravity = GetValue<object>(t, c, "gravity");
+                if (rawGravity is Vector3 v3)
+                {
+                    gravity = v3;
+                }
+                else if (rawGravity != null)
+                {
+                    try
+                    {
+                        float f = Convert.ToSingle(rawGravity);
+                        gravity = new Vector3(0, -9.81f * f, 0);
+                    }
+                    catch
+                    {
+                        gravity = new Vector3(0, -9.81f, 0);
+                    }
+                }
+                else
+                {
+                    gravity = new Vector3(0, -9.81f, 0);
+                }
+
                 maxAngle = GetValue<float>(t, c, "maxAngle", 90f);
                 radius = GetValue<float>(t, c, "radius", 0.02f);
 
@@ -980,10 +1005,31 @@ namespace DesktopMascot.Editor
             private static T GetValue<T>(Type t, object obj, string name, T fallback = default)
             {
                 var f = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (f != null) return (T)Convert.ChangeType(f.GetValue(obj), typeof(T));
-                var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (p != null) return (T)Convert.ChangeType(p.GetValue(obj), typeof(T));
-                return fallback;
+                object val = null;
+                if (f != null)
+                {
+                    val = f.GetValue(obj);
+                }
+                if (val == null)
+                {
+                    var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (p != null)
+                    {
+                        val = p.GetValue(obj);
+                    }
+                }
+
+                if (val == null) return fallback;
+                if (val is T typed) return typed;
+
+                try
+                {
+                    return (T)Convert.ChangeType(val, typeof(T));
+                }
+                catch
+                {
+                    return fallback;
+                }
             }
         }
 
@@ -1005,7 +1051,21 @@ namespace DesktopMascot.Editor
                 var t = c.GetType();
 
                 position = GetValue<Vector3>(t, c, "position", Vector3.zero);
-                rotation = GetValue<Quaternion>(t, c, "rotation", Quaternion.identity);
+
+                var rotVal = GetValue<object>(t, c, "rotation");
+                if (rotVal is Quaternion q)
+                {
+                    rotation = q;
+                }
+                else if (rotVal is Vector3 euler)
+                {
+                    rotation = Quaternion.Euler(euler);
+                }
+                else
+                {
+                    rotation = Quaternion.identity;
+                }
+
                 radius = GetValue<float>(t, c, "radius", 0.05f);
                 height = GetValue<float>(t, c, "height", 0.1f);
                 insideBounds = GetValue<bool>(t, c, "insideBounds", false);
@@ -1014,8 +1074,8 @@ namespace DesktopMascot.Editor
                 if (shapeVal != null)
                 {
                     string sName = shapeVal.ToString();
-                    if (sName.Contains("Capsule")) shape = 1;
-                    else if (sName.Contains("Plane")) shape = 2;
+                    if (sName.Contains("Capsule") || sName == "1") shape = 1;
+                    else if (sName.Contains("Plane") || sName == "2") shape = 2;
                     else shape = 0;
                 }
             }
@@ -1023,18 +1083,31 @@ namespace DesktopMascot.Editor
             private static T GetValue<T>(Type t, object obj, string name, T fallback = default)
             {
                 var f = t.GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                object val = null;
                 if (f != null)
                 {
-                    var val = f.GetValue(obj);
-                    if (val != null) return (T)val;
+                    val = f.GetValue(obj);
                 }
-                var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (p != null)
+                if (val == null)
                 {
-                    var val = p.GetValue(obj);
-                    if (val != null) return (T)val;
+                    var p = t.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (p != null)
+                    {
+                        val = p.GetValue(obj);
+                    }
                 }
-                return fallback;
+
+                if (val == null) return fallback;
+                if (val is T typed) return typed;
+
+                try
+                {
+                    return (T)Convert.ChangeType(val, typeof(T));
+                }
+                catch
+                {
+                    return fallback;
+                }
             }
         }
     }
