@@ -27,6 +27,9 @@ pub struct GpuAvatar {
     pub model_bind_group: BindGroup,
 }
 
+pub type DmaModel = GpuAvatar;
+pub type SkinnedModel = GpuAvatar;
+
 impl GpuAvatar {
     /// Builds a `GpuAvatar` from parsed `DmaFile`.
     pub fn from_dma(

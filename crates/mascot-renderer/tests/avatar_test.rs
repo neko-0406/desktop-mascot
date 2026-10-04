@@ -38,6 +38,13 @@ fn test_sample_dma_avatar_parsing_and_morphs() {
     assert_eq!(uniform.shade_color, [0.85, 0.75, 0.8, 1.0]);
     assert_eq!(uniform.outline_enable, 1);
     assert_eq!(uniform.outline_width, 1.0);
+    assert_eq!(uniform.matcap_enable, 0);
+    assert_eq!(uniform.matcap_color, [1.0, 1.0, 1.0, 0.0]);
+
+    // Verify type aliases
+    let _dma_model_type_check: Option<mascot_renderer::DmaModel> = None;
+    let _skinned_model_type_check: Option<mascot_renderer::SkinnedModel> = None;
+    let _liltoon_type_check: Option<mascot_renderer::LilToonMaterialUniform> = None;
 
     // 4. Verify morph targets and blending
     assert_eq!(dma.morph_targets.len(), 1);
