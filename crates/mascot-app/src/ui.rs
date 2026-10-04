@@ -183,7 +183,7 @@ impl EguiOverlay {
 
         let mut next_ui_action = UiAction::None;
 
-        let full_output = self.ctx.run_ui(raw_input, |ui| {
+        let mut full_output = self.ctx.run_ui(raw_input, |ui| {
             let ctx = ui.ctx().clone();
 
             // 1. Speech Bubble (Floating above Head)
@@ -307,10 +307,10 @@ impl EguiOverlay {
             .handle_platform_output(window, full_output.platform_output);
 
         // Upload and render textures
-        for (id, deltas) in &full_output.textures_delta.set {
-            for delta in deltas {
+        for (id, deltas) in full_output.textures_delta.set.drain() {
+            for delta in &deltas {
                 self.wgpu_renderer
-                    .update_texture(device, queue, *id, delta);
+                    .update_texture(device, queue, id, delta);
             }
         }
 
@@ -354,9 +354,11 @@ impl EguiOverlay {
                 .render(&mut rpass, &clipped_primitives, &screen_descriptor);
         }
 
-        for id in &full_output.textures_delta.free {
-            self.wgpu_renderer.free_texture(id);
+        for id in full_output.textures_delta.free.drain() {
+            self.wgpu_renderer.free_texture(&id);
         }
+
+        full_output.textures_delta.clear();
 
         // Collect all active UI rectangles for HitTester
         let mut ui_rects = Vec::new();
