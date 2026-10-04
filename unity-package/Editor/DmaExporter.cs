@@ -253,7 +253,7 @@ namespace DesktopMascot.Editor
                 ulong totalFileSize = (ulong)fs.Position;
 
                 // Seek back and rewrite Header with total size
-                fs.Seek(0, SeekOrigin.Start);
+                fs.Seek(0, SeekOrigin.Begin);
                 bw.Write(MAGIC_DMA1);
                 bw.Write(DMA_VERSION);
                 bw.Write(FLAG_LITTLE_ENDIAN);
@@ -262,7 +262,7 @@ namespace DesktopMascot.Editor
                 bw.Write(new byte[8]);
 
                 // Seek to TOC and rewrite TOC entries
-                fs.Seek(tocStart, SeekOrigin.Start);
+                fs.Seek(tocStart, SeekOrigin.Begin);
                 foreach (var entry in tocEntries)
                 {
                     bw.Write(entry.type);
