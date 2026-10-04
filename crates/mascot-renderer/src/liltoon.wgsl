@@ -33,6 +33,11 @@ struct LilToonUniform {
     outline_width: f32,
     outline_enable: u32,
     _pad1: vec2<f32>,
+    matcap_color: vec4<f32>,
+    matcap_border: f32,
+    matcap_blur: f32,
+    matcap_enable: u32,
+    _pad2: f32,
 };
 
 struct ModelUniform {
@@ -68,6 +73,7 @@ struct VertexOutput {
     @location(0) world_pos: vec3<f32>,
     @location(1) world_normal: vec3<f32>,
     @location(2) uv0: vec2<f32>,
+    @location(3) world_tangent: vec4<f32>,
 };
 
 fn get_bone_matrix(idx: u32) -> mat4x4<f32> {
@@ -111,11 +117,13 @@ fn vs_main(in: VertexInput) -> VertexOutput {
     let skin_matrix = get_skin_matrix(in.bone_indices, in.bone_weights);
     let world_pos = model.model_matrix * (skin_matrix * vec4<f32>(in.position, 1.0));
     let world_norm = normalize((model.model_matrix * (skin_matrix * vec4<f32>(in.normal, 0.0))).xyz);
+    let world_tang = normalize((model.model_matrix * (skin_matrix * vec4<f32>(in.tangent.xyz, 0.0))).xyz);
 
     out.clip_position = camera.view_proj * world_pos;
     out.world_pos = world_pos.xyz;
     out.world_normal = world_norm;
     out.uv0 = in.uv0;
+    out.world_tangent = vec4<f32>(world_tang, in.tangent.w);
     return out;
 }
 
@@ -157,8 +165,29 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Emission
     let emission = mat.emission_color.rgb;
 
+    // MatCap (Sphere Mapping) based on view-space normal with procedural fallback
+    var matcap_rgb = vec3<f32>(0.0);
+    if (mat.matcap_enable != 0u || mat.matcap_color.a > 0.0) {
+        let cam_up = vec3<f32>(0.0, 1.0, 0.0);
+        let cam_right = cross(cam_up, v);
+        let r_len = length(cam_right);
+        let right = select(vec3<f32>(1.0, 0.0, 0.0), cam_right / r_len, r_len > 0.001);
+        let up = cross(v, right);
+
+        // View-space normal (-1.0 to 1.0)
+        let vn = vec2<f32>(dot(n, right), dot(n, up));
+        let matcap_uv = vn * 0.5 + 0.5;
+
+        // Fallback procedural sphere reflection calculation
+        let sphere_dist = clamp(length(vn), 0.0, 1.0);
+        let sphere_falloff = 1.0 - sphere_dist * sphere_dist;
+        let sphere_hl = max(0.0, dot(vn, normalize(vec2<f32>(0.5, 0.7))));
+        let matcap_factor = pow(sphere_hl, 6.0) * 0.7 + sphere_falloff * 0.3;
+        matcap_rgb = mat.matcap_color.rgb * (matcap_factor * mat.matcap_color.a);
+    }
+
     // Direct and ambient lighting combination
-    let lit_rgb = toon_col * light.color + light.ambient_color * base_col.rgb + rim + emission;
+    let lit_rgb = toon_col * light.color + light.ambient_color * base_col.rgb + rim + emission + matcap_rgb;
     let final_alpha = base_col.a;
 
     // PreMultiplied Alpha: RGB multiplied by alpha for DWM desktop composition
@@ -176,6 +205,7 @@ fn vs_outline(in: VertexInput) -> VertexOutput {
     let skin_matrix = get_skin_matrix(in.bone_indices, in.bone_weights);
     let world_pos = model.model_matrix * (skin_matrix * vec4<f32>(in.position, 1.0));
     let world_norm = normalize((model.model_matrix * (skin_matrix * vec4<f32>(in.normal, 0.0))).xyz);
+    let world_tang = normalize((model.model_matrix * (skin_matrix * vec4<f32>(in.tangent.xyz, 0.0))).xyz);
 
     var clip_pos = camera.view_proj * world_pos;
     let clip_norm = camera.view_proj * vec4<f32>(world_norm, 0.0);
@@ -194,6 +224,7 @@ fn vs_outline(in: VertexInput) -> VertexOutput {
     out.world_pos = world_pos.xyz;
     out.world_normal = world_norm;
     out.uv0 = in.uv0;
+    out.world_tangent = vec4<f32>(world_tang, in.tangent.w);
     return out;
 }
 

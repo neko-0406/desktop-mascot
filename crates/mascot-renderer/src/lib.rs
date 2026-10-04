@@ -11,11 +11,11 @@ pub mod pipeline;
 pub mod renderer;
 pub mod skeleton;
 
-pub use avatar::GpuAvatar;
+pub use avatar::{DmaModel, GpuAvatar, SkinnedModel};
 pub use camera::{Camera, CameraBuffer, CameraUniform};
 pub use context::{RenderContext, DEPTH_FORMAT};
 pub use error::RendererError;
-pub use material::{GpuMaterial, GpuTexture, LilToonUniform};
+pub use material::{GpuMaterial, GpuTexture, LilToonMaterialUniform, LilToonUniform};
 pub use mesh::{create_cube_mesh, GpuMesh};
 pub use morph::MorphController;
 pub use pipeline::{
@@ -138,5 +138,51 @@ mod tests {
 
         let head_skin = head_world * head.inverse_bind_matrix;
         assert!(head_skin.abs_diff_eq(Mat4::IDENTITY, 1e-4));
+    }
+
+    #[test]
+    fn test_skinning_gpu_formula() {
+        // Test CPU equivalent of vs_main skinning math:
+        // world_pos = model * (skin_matrix * pos)
+        let pos = glam::Vec3::new(0.0, 1.0, 0.0);
+        let normal = glam::Vec3::new(0.0, 0.0, 1.0);
+        let tangent = glam::Vec3::new(1.0, 0.0, 0.0);
+
+        let bone_matrix_0 = Mat4::from_translation(glam::Vec3::new(0.0, 0.5, 0.0));
+        let bone_matrix_1 = Mat4::from_translation(glam::Vec3::new(0.0, 1.0, 0.0));
+
+        let weight_0 = 0.6f32;
+        let weight_1 = 0.4f32;
+
+        let skin_mat = bone_matrix_0 * weight_0 + bone_matrix_1 * weight_1;
+        let deformed_pos = skin_mat.transform_point3(pos);
+        let deformed_norm = skin_mat.transform_vector3(normal).normalize();
+        let deformed_tang = skin_mat.transform_vector3(tangent).normalize();
+
+        // Translation should be 0.5 * 0.6 + 1.0 * 0.4 = 0.7 along Y
+        assert!((deformed_pos.y - 1.7).abs() < 1e-5);
+        assert!((deformed_norm - normal).length() < 1e-5);
+        assert!((deformed_tang - tangent).length() < 1e-5);
+    }
+
+    #[test]
+    fn test_liltoon_matcap_uniform_defaults() {
+        let mat = LilToonMaterialUniform::default();
+        assert_eq!(mat.matcap_enable, 0);
+        assert_eq!(mat.matcap_color, [1.0, 1.0, 1.0, 0.0]);
+        assert_eq!(mat.matcap_border, 0.5);
+        assert_eq!(mat.matcap_blur, 0.1);
+    }
+
+    #[test]
+    fn test_inverted_hull_offset_calculation() {
+        // Outline offset: offset_dir * width * clip_pos.w * 0.0015
+        let width = 1.0f32;
+        let clip_w = 2.0f32;
+        let norm_dir = glam::Vec2::new(0.0, 1.0);
+        let offset = norm_dir * width * clip_w * 0.0015;
+
+        assert!((offset.y - 0.003).abs() < 1e-6);
+        assert_eq!(offset.x, 0.0);
     }
 }

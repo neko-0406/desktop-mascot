@@ -92,6 +92,20 @@ impl<'w> MascotRenderer<'w> {
         )
     }
 
+    /// Loads a `.dma` model into GPU buffers (alias for load_avatar).
+    pub fn load_dma_model(&self, dma: &DmaFile) -> Result<crate::avatar::DmaModel, RendererError> {
+        self.load_avatar(dma)
+    }
+
+    /// Renders a `.dma` model with lilToon shading and inverted hull outline (alias for render_avatar).
+    pub fn render_dma_model(
+        &mut self,
+        model: &mut crate::avatar::DmaModel,
+        model_matrix: Mat4,
+    ) -> Result<(), RendererError> {
+        self.render_avatar(model, model_matrix)
+    }
+
     /// Renders an avatar with lilToon shading and inverted hull outline passes.
     pub fn render_avatar(
         &mut self,

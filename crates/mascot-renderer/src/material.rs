@@ -11,7 +11,7 @@ use wgpu::{
 };
 
 /// Uniform struct layout matching `LilToonUniform` in `liltoon.wgsl`.
-/// Aligned to 16 bytes for standard uniform buffers. Total size: 144 bytes.
+/// Aligned to 16 bytes for standard uniform buffers. Total size: 176 bytes.
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Pod, Zeroable)]
 pub struct LilToonUniform {
@@ -32,7 +32,15 @@ pub struct LilToonUniform {
     pub outline_width: f32,
     pub outline_enable: u32,
     pub _pad1: [f32; 2],
+    // MatCap (Sphere Mapping)
+    pub matcap_color: [f32; 4],
+    pub matcap_border: f32,
+    pub matcap_blur: f32,
+    pub matcap_enable: u32,
+    pub _pad2: f32,
 }
+
+pub type LilToonMaterialUniform = LilToonUniform;
 
 impl Default for LilToonUniform {
     fn default() -> Self {
@@ -54,6 +62,11 @@ impl Default for LilToonUniform {
             outline_width: 1.0,
             outline_enable: 1,
             _pad1: [0.0, 0.0],
+            matcap_color: [1.0, 1.0, 1.0, 0.0],
+            matcap_border: 0.5,
+            matcap_blur: 0.1,
+            matcap_enable: 0,
+            _pad2: 0.0,
         }
     }
 }
@@ -78,6 +91,11 @@ impl From<&LilToonMaterialParams> for LilToonUniform {
             outline_width: p.outline_width,
             outline_enable: p.outline_enable,
             _pad1: [0.0, 0.0],
+            matcap_color: [1.0, 1.0, 1.0, 0.0],
+            matcap_border: 0.5,
+            matcap_blur: 0.1,
+            matcap_enable: 0,
+            _pad2: 0.0,
         }
     }
 }
@@ -229,7 +247,8 @@ mod tests {
 
     #[test]
     fn test_liltoon_uniform_size_alignment() {
-        assert_eq!(std::mem::size_of::<LilToonUniform>(), 144);
+        assert_eq!(std::mem::size_of::<LilToonUniform>(), 176);
         assert_eq!(std::mem::size_of::<LilToonUniform>() % 16, 0);
+        assert_eq!(std::mem::size_of::<LilToonMaterialUniform>(), 176);
     }
 }
