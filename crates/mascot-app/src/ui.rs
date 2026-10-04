@@ -153,6 +153,7 @@ impl EguiOverlay {
     }
 
     /// Renders egui UI pass and returns bounding boxes of interactive UI elements.
+    #[allow(clippy::too_many_arguments)]
     pub fn update_and_render(
         &mut self,
         window: &Window,

@@ -113,11 +113,10 @@ impl PettingDetector {
         }
 
         // Check if reversals expired
-        if let Some(lrt) = self.last_reversal_time {
-            if (now - lrt).as_secs_f32() > 0.6 {
+        if let Some(lrt) = self.last_reversal_time
+            && (now - lrt).as_secs_f32() > 0.6 {
                 self.reversal_count = 0;
             }
-        }
 
         self.is_petting = self.reversal_count >= 2;
     }

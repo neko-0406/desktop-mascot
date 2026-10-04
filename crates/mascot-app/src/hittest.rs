@@ -95,18 +95,16 @@ impl HitTester {
         }
 
         // 2. Head region (for petting & head clicks)
-        if let Some(head) = &bounds.head_circle {
-            if head.contains(x, y) {
+        if let Some(head) = &bounds.head_circle
+            && head.contains(x, y) {
                 return HitTarget::Head;
             }
-        }
 
         // 3. Body region (for dragging / body clicks)
-        if let Some(body) = &bounds.body_rect {
-            if body.contains(x, y) {
+        if let Some(body) = &bounds.body_rect
+            && body.contains(x, y) {
                 return HitTarget::Body;
             }
-        }
 
         HitTarget::None
     }

@@ -53,8 +53,8 @@ impl WorkAreaRect {
 pub fn configure_transparent_window(window: &Arc<Window>) {
     #[cfg(target_os = "windows")]
     {
-        if let Ok(handle) = window.window_handle() {
-            if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+        if let Ok(handle) = window.window_handle()
+            && let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
                 let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
                 unsafe {
                     let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
@@ -75,7 +75,6 @@ pub fn configure_transparent_window(window: &Arc<Window>) {
                     }
                 }
             }
-        }
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -89,8 +88,8 @@ pub fn configure_transparent_window(window: &Arc<Window>) {
 pub fn install_hit_test_subclass(window: &Arc<Window>, hit_tester: Arc<HitTester>) {
     #[cfg(target_os = "windows")]
     {
-        if let Ok(handle) = window.window_handle() {
-            if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+        if let Ok(handle) = window.window_handle()
+            && let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
                 let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
                 let ref_data = Arc::into_raw(hit_tester) as usize;
                 unsafe {
@@ -109,7 +108,6 @@ pub fn install_hit_test_subclass(window: &Arc<Window>, hit_tester: Arc<HitTester
                     }
                 }
             }
-        }
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -166,9 +164,9 @@ unsafe extern "system" fn mascot_subclass_proc(
 pub fn get_desktop_work_area(window: Option<&Window>) -> WorkAreaRect {
     #[cfg(target_os = "windows")]
     {
-        if let Some(win) = window {
-            if let Ok(handle) = win.window_handle() {
-                if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+        if let Some(win) = window
+            && let Ok(handle) = win.window_handle()
+                && let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
                     let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
                     let hmon = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
                     if !hmon.is_invalid() {
@@ -186,8 +184,6 @@ pub fn get_desktop_work_area(window: Option<&Window>) -> WorkAreaRect {
                         }
                     }
                 }
-            }
-        }
 
         // Global fallback via SPI_GETWORKAREA
         let mut rect = RECT::default();

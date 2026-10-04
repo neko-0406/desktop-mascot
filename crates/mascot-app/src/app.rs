@@ -327,27 +327,25 @@ impl ApplicationHandler for MascotApp {
                                 }
                             }
                             ElementState::Released => {
-                                if self.interaction.mode == InteractionMode::Dragging {
-                                    if let Some(window) = &self.window {
+                                if self.interaction.mode == InteractionMode::Dragging
+                                    && let Some(window) = &self.window {
                                         let work_area = get_desktop_work_area(Some(window));
                                         let ground_y = work_area.bottom - (self.window_size.1 as i32);
                                         let cur_y =
                                             window.outer_position().unwrap_or(PhysicalPosition::new(0, 0)).y;
                                         self.interaction.end_drag(cur_y, ground_y);
                                     }
-                                }
                             }
                         }
                     }
                     MouseButton::Right => {
-                        if state == ElementState::Pressed && target != HitTarget::None {
-                            if let Some(overlay) = &mut self.egui_overlay {
+                        if state == ElementState::Pressed && target != HitTarget::None
+                            && let Some(overlay) = &mut self.egui_overlay {
                                 overlay.open_context_menu(glam::Vec2::new(
                                     self.cursor_pos.0,
                                     self.cursor_pos.1,
                                 ));
                             }
-                        }
                     }
                     _ => {}
                 }
